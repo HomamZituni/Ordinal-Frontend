@@ -260,26 +260,54 @@ const fetchGamification = async () => {
         ) : (
           // Show cards as clickable items
           <div>
-            {cards.map((card) => (
-              <div
-                key={card._id} // Unique key for React list rendering
-                onClick={() => handleCardClick(card._id)} // Navigate to card detail on click
-                style={{
-                  padding: '15px',
-                  border: '1px solid #ddd',
-                  borderRadius: '8px',
-                  marginBottom: '10px',
-                  cursor: 'pointer',
-                  backgroundColor: '#f9f9f9'
-                }}
-              >
-                <h3 style={{ margin: '0 0 5px 0' }}>{card.name}</h3>
-                <p style={{ margin: 0, color: '#666' }}>
-                  {card.network} •••• {card.last4}
-                </p>
-              </div>
-            ))}
-          </div>
+  {cards.map((card) => (
+    <div
+      key={card._id} // Unique key for React list rendering
+      style={{
+        padding: '15px',
+        border: '1px solid #ddd',
+        borderRadius: '8px',
+        marginBottom: '10px',
+        backgroundColor: '#f9f9f9'
+      }}
+    >
+      <h3 style={{ margin: '0 0 5px 0' }}>{card.name}</h3>
+      <p style={{ margin: '0 0 10px 0', color: '#666' }}>
+        {card.network} •••• {card.last4}
+      </p>
+      
+      {/* Action buttons */}
+      <div style={{ display: 'flex', gap: '10px' }}>
+        <button
+          onClick={() => handleCardClick(card._id)} // Navigate to card detail on click
+          style={{
+            padding: '8px 15px',
+            cursor: 'pointer',
+            backgroundColor: '#2196F3',
+            color: 'white',
+            border: 'none',
+            borderRadius: '4px'
+          }}
+        >
+          View Transactions
+        </button>
+        <button
+          onClick={() => navigate(`/rewards/${card._id}`)} // Navigate to rewards page
+          style={{
+            padding: '8px 15px',
+            cursor: 'pointer',
+            backgroundColor: '#4CAF50',
+            color: 'white',
+            border: 'none',
+            borderRadius: '4px'
+          }}
+        >
+          View Rewards
+        </button>
+      </div>
+    </div>
+  ))}
+</div>
         )}
       </div>
     </div>
