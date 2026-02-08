@@ -26,9 +26,13 @@ export default function Dashboard() {
   // Get API URL from .env
   const API_URL = import.meta.env.VITE_API_URL;
 
+  // state for gamification spend notification 
+  const [gamification, setGamification] = useState(null);
+
   // Fetch user's cards when component loads
   useEffect(() => {
     fetchCards();
+    fetchGamification(); 
   }, []); // Empty array = run once on mount
 
   // Function to get all cards from backend
@@ -39,6 +43,31 @@ export default function Dashboard() {
           'Authorization': `Bearer ${token}` // Send JWT token for authentication
         }
       });
+
+      // Function to get gamification data from backend
+const fetchGamification = async () => {
+  try {
+    // For demo: get gamification for the first card
+    // In production, you'd do this per card or aggregate
+    const response = await fetch(`${API_URL}/cards/gamification`, {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+
+    const data = await response.json();
+
+    if (response.ok) {
+      setGamification(data); // Save gamification data to state
+    }
+    // Ignore errors - gamification is optional feature
+    
+  } catch (err) {
+    // Silently fail - don't break dashboard if gamification fails
+    console.log('Gamification not available');
+  }
+};
+
 
       const data = await response.json();
 
@@ -112,6 +141,54 @@ export default function Dashboard() {
           </button>
         </div>
       </div>
+
+     {/* Gamification Section - Show progress toward top reward */}
+{gamification && (
+  <div style={{ 
+    marginBottom: '30px', 
+    padding: '20px', 
+    border: '2px solid #4CAF50', 
+    borderRadius: '8px',
+    backgroundColor: '#f0f8f0'
+  }}>
+    <h2 style={{ margin: '0 0 10px 0', color: '#4CAF50' }}>🎯 Your Progress</h2>
+    <p style={{ margin: '10px 0', fontSize: '16px' }}>
+      {gamification.message}
+    </p>
+    
+    {/* Progress bar */}
+    {gamification.progressPercent !== undefined && (
+      <div style={{ marginTop: '15px' }}>
+        <div style={{ 
+          width: '100%', 
+          height: '30px', 
+          backgroundColor: '#e0e0e0', 
+          borderRadius: '15px',
+          overflow: 'hidden'
+        }}>
+          <div style={{
+            width: `${Math.min(gamification.progressPercent, 100)}%`, // Cap at 100%
+            height: '100%',
+            backgroundColor: '#4CAF50',
+            transition: 'width 0.3s ease',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: 'white',
+            fontWeight: 'bold'
+          }}>
+            {gamification.progressPercent.toFixed(0)}%
+          </div>
+        </div>
+        <p style={{ margin: '10px 0 0 0', fontSize: '14px', color: '#666' }}>
+          Current: {gamification.currentPoints} points | 
+          Goal: {gamification.targetPoints} points
+        </p>
+      </div>
+    )}
+  </div>
+)}
+ 
 
       {/* Show error message if exists */}
       {error && <div style={{ color: 'red', marginBottom: '15px' }}>{error}</div>}
