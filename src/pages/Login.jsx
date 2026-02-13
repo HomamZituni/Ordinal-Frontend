@@ -35,7 +35,7 @@ export default function Login() {
         throw new Error(data.message || 'Login failed');
       }
 //if successful save user data and token to AuthContext
-      login(data.user, data.token);
+      login(data, data.token);
       //redirect to user dashboard
       navigate('/dashboard');
     } catch (err) {

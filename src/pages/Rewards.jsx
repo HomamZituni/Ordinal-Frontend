@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/useAuth';
 
+
 export default function Rewards() {
   // Get cardId from URL params (e.g., /rewards/123abc)
   const { cardId } = useParams();
@@ -27,13 +28,16 @@ export default function Rewards() {
   // Get API URL from .env
   const API_URL = import.meta.env.VITE_API_URL;
 
+
   // Fetch card and rewards when component loads
   useEffect(() => {
     fetchCardAndRewards();
   }, [cardId, aiEnabled]); // Re-run when cardId or aiEnabled changes
 
+
   // Function to get card details and rewards from backend
   const fetchCardAndRewards = async () => {
+    console.log('fetchCardAndRewards called, aiEnabled:', aiEnabled);
     setLoading(true);
     try {
       // Fetch card details
@@ -43,7 +47,9 @@ export default function Rewards() {
         }
       });
 
+
       const cardData = await cardResponse.json();
+
 
       if (!cardResponse.ok) {
         if (cardResponse.status === 401) {
@@ -53,12 +59,16 @@ export default function Rewards() {
         throw new Error(cardData.message || 'Failed to fetch card');
       }
 
+
       setCard(cardData);
+
 
       // Fetch rewards - use different endpoint based on AI toggle
       const rewardsUrl = aiEnabled 
         ? `${API_URL}/cards/${cardId}/recommendations` // AI ranked rewards
         : `${API_URL}/cards/${cardId}/rewards`; // Unranked rewards list
+
+      console.log('Fetching rewards from:', rewardsUrl);
 
       const rewardsResponse = await fetch(rewardsUrl, {
         headers: {
@@ -66,33 +76,44 @@ export default function Rewards() {
         }
       });
 
+
       const rewardsData = await rewardsResponse.json();
+      console.log('Rewards data received:', rewardsData);
+
 
       if (!rewardsResponse.ok) {
         throw new Error(rewardsData.message || 'Failed to fetch rewards');
       }
 
-      setRewards(rewardsData);
+
+      setRewards(rewardsData.recommendations || rewardsData);
+
       
     } catch (err) {
+      console.error('Error in fetchCardAndRewards:', err);
       setError(err.message);
     } finally {
       setLoading(false);
     }
   };
 
-  // Handle manual refresh button (recalculates AI rankings)
+
+// Handle manual refresh button (recalculates AI rankings) 
   const handleRefresh = async () => {
+    console.log('handleRefresh called, aiEnabled:', aiEnabled);
+    
     if (!aiEnabled) {
-      // Can't refresh when AI is off
       alert('Enable AI ranking to refresh recommendations');
       return;
     }
 
+
     setRefreshing(true);
     setError('');
 
+
     try {
+      console.log('Calling refresh endpoint...');
       // Call refresh endpoint to recalculate rankings
       const response = await fetch(`${API_URL}/cards/${cardId}/recommendations/refresh`, {
         method: 'POST',
@@ -101,21 +122,45 @@ export default function Rewards() {
         }
       });
 
+
       const data = await response.json();
+      console.log('Refresh response:', data);
+
 
       if (!response.ok) {
         throw new Error(data.message || 'Failed to refresh recommendations');
       }
 
+
       // Success! Reload rewards with new rankings
-      await fetchCardAndRewards();
+      console.log('Fetching updated rewards...');
+      const rewardsUrl = `${API_URL}/cards/${cardId}/recommendations`;
+      const rewardsResponse = await fetch(rewardsUrl, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+
+      const rewardsData = await rewardsResponse.json();
+      console.log('Updated rewards:', rewardsData);
+      
+if (rewardsResponse.ok) {
+  setRewards(rewardsData.recommendations || rewardsData);
+}
+
       
     } catch (err) {
+      console.error('Error in handleRefresh:', err);
       setError(err.message);
+      alert(err.message);
     } finally {
       setRefreshing(false);
     }
   };
+
+
+
 
   // Toggle AI ranking on/off
   const handleToggleAI = () => {
@@ -123,10 +168,22 @@ export default function Rewards() {
     // useEffect will automatically re-fetch with new setting
   };
 
+
+
+  
+  // Load ranked rewards manually
+ const loadRankedRewards = () => {
+  console.log('loadRankedRewards called');
+  handleRefresh(); 
+};
+
+
   // Show loading message while fetching data
   if (loading && !card) {
     return <div style={{ padding: '50px', textAlign: 'center' }}>Loading...</div>;
   }
+
+
 
   return (
     <div style={{ maxWidth: '900px', margin: '50px auto', padding: '20px' }}>
@@ -142,8 +199,10 @@ export default function Rewards() {
         {card && <p style={{ color: '#666' }}>{card.name} • {card.network} •••• {card.last4}</p>}
       </div>
 
+
       {/* Show error message if exists */}
       {error && <div style={{ color: 'red', marginBottom: '15px' }}>{error}</div>}
+
 
       {/* Control panel: AI toggle and Refresh button */}
       <div style={{ 
@@ -175,23 +234,45 @@ export default function Rewards() {
             </span>
           </div>
 
-          {/* Refresh button (only works when AI is on) */}
-          <button
-            onClick={handleRefresh}
-            disabled={refreshing || !aiEnabled}
-            style={{
-              padding: '10px 20px',
-              cursor: refreshing || !aiEnabled ? 'not-allowed' : 'pointer',
-              backgroundColor: aiEnabled ? '#2196F3' : '#ccc',
-              color: 'white',
-              border: 'none',
-              borderRadius: '4px'
-            }}
-          >
-            {refreshing ? 'Refreshing...' : '🔄 Refresh Rankings'}
-          </button>
+
+
+          {/* Action buttons */}
+          <div style={{ display: 'flex', gap: '10px' }}>
+            <button
+              onClick={loadRankedRewards}
+              disabled={!aiEnabled}
+              style={{
+                padding: '10px 20px',
+                cursor: !aiEnabled ? 'not-allowed' : 'pointer',
+                backgroundColor: aiEnabled ? '#28a745' : '#ccc',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px'
+              }}
+            >
+              Load Ranked Rewards
+            </button>
+
+
+            <button
+              onClick={handleRefresh}
+              disabled={refreshing || !aiEnabled}
+              style={{
+                padding: '10px 20px',
+                cursor: refreshing || !aiEnabled ? 'not-allowed' : 'pointer',
+                backgroundColor: aiEnabled ? '#2196F3' : '#ccc',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px'
+              }}
+            >
+              {refreshing ? 'Refreshing...' : '🔄 Refresh Rankings'}
+            </button>
+          </div>
         </div>
       </div>
+
+
 
       {/* Rewards List */}
       <div>
@@ -203,7 +284,7 @@ export default function Rewards() {
           <p>No rewards available yet.</p>
         ) : (
           <div>
-            {rewards.map((reward, index) => (
+            {(Array.isArray(rewards) ? rewards : []).map((reward, index) => (
               <div
                 key={reward._id}
                 style={{
@@ -236,6 +317,8 @@ export default function Rewards() {
                   </div>
                 )}
 
+
+
                 {/* Reward details */}
                 <h3 style={{ margin: '0 0 10px 0' }}>{reward.name}</h3>
                 <p style={{ margin: '5px 0', color: '#666' }}>{reward.description}</p>
@@ -266,3 +349,4 @@ export default function Rewards() {
     </div>
   );
 }
+

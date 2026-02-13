@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/useAuth';
 
+
 export default function CardDetail() {
   // Get cardId from URL params (e.g., /card/123abc)
   const { cardId } = useParams();
@@ -31,10 +32,12 @@ export default function CardDetail() {
   // Get API URL from .env
   const API_URL = import.meta.env.VITE_API_URL;
 
+
   // Fetch card info and transactions when component loads
   useEffect(() => {
     fetchCardAndTransactions();
   }, [cardId]); // Re-run if cardId changes
+
 
   // Function to get card details and transactions from backend
   const fetchCardAndTransactions = async () => {
@@ -46,7 +49,9 @@ export default function CardDetail() {
         }
       });
 
+
       const cardData = await cardResponse.json();
+
 
       if (!cardResponse.ok) {
         if (cardResponse.status === 401) {
@@ -56,7 +61,9 @@ export default function CardDetail() {
         throw new Error(cardData.message || 'Failed to fetch card');
       }
 
+
       setCard(cardData);
+
 
       // Fetch transactions for this card
       const txResponse = await fetch(`${API_URL}/cards/${cardId}/transactions`, {
@@ -65,11 +72,14 @@ export default function CardDetail() {
         }
       });
 
+
       const txData = await txResponse.json();
+
 
       if (!txResponse.ok) {
         throw new Error(txData.message || 'Failed to fetch transactions');
       }
+
 
       setTransactions(txData);
       
@@ -78,11 +88,13 @@ export default function CardDetail() {
     }
   };
 
+
   // Handle adding new transaction
   const handleAddTransaction = async (e) => {
     e.preventDefault(); // Prevent page reload
     setError('');
     setLoading(true);
+
 
     try {
       const response = await fetch(`${API_URL}/cards/${cardId}/transactions`, {
@@ -94,11 +106,14 @@ export default function CardDetail() {
         body: JSON.stringify(newTransaction)
       });
 
+
       const data = await response.json();
+
 
       if (!response.ok) {
         throw new Error(data.message || 'Failed to add transaction');
       }
+
 
       // Success! Refresh transactions list
       await fetchCardAndTransactions();
@@ -118,12 +133,14 @@ export default function CardDetail() {
     }
   };
 
+
   // Handle deleting a transaction
   const handleDeleteTransaction = async (transactionId) => {
     // Ask for confirmation before deleting
     if (!confirm('Are you sure you want to delete this transaction?')) {
       return; // User clicked "Cancel", do nothing
     }
+
 
     try {
       const response = await fetch(`${API_URL}/cards/${cardId}/transactions/${transactionId}`, {
@@ -133,10 +150,12 @@ export default function CardDetail() {
         }
       });
 
+
       if (!response.ok) {
         const data = await response.json();
         throw new Error(data.message || 'Failed to delete transaction');
       }
+
 
       // Success! Refresh list
       await fetchCardAndTransactions();
@@ -146,10 +165,39 @@ export default function CardDetail() {
     }
   };
 
+
+  // Handle deleting ALL transactions
+  const handleDeleteAll = async () => {
+    if (!confirm('Are you sure you want to delete ALL transactions for this card?')) {
+      return;
+    }
+    
+    try {
+      const response = await fetch(`${API_URL}/cards/${cardId}/transactions/deleteAll`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (response.ok) {
+        setTransactions([]); // Clear the list
+        alert('All transactions deleted!');
+      } else {
+        const data = await response.json();
+        throw new Error(data.message || 'Failed to delete transactions');
+      }
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+
   // Show loading message while fetching data
   if (!card) {
     return <div style={{ padding: '50px', textAlign: 'center' }}>Loading...</div>;
   }
+
 
   return (
     <div style={{ maxWidth: '900px', margin: '50px auto', padding: '20px' }}>
@@ -161,12 +209,14 @@ export default function CardDetail() {
         >
           ← Back to Dashboard
         </button>
-        <h1>{card.name}</h1>
-        <p style={{ color: '#666' }}>{card.network} •••• {card.last4}</p>
+        <h1>{card.cardName}</h1>
+        <p style={{ color: '#666' }}>{card.issuer} •••• {card.lastFourDigits}</p>
       </div>
+
 
       {/* Show error message if exists */}
       {error && <div style={{ color: 'red', marginBottom: '15px' }}>{error}</div>}
+
 
       {/* Section: Add New Transaction */}
       <div style={{ marginBottom: '40px', padding: '20px', border: '1px solid #ddd', borderRadius: '8px' }}>
@@ -186,6 +236,7 @@ export default function CardDetail() {
               />
             </div>
 
+
             {/* Amount input */}
             <div>
               <label>Amount ($):</label>
@@ -199,6 +250,7 @@ export default function CardDetail() {
                 style={{ width: '100%', padding: '8px', marginTop: '5px' }}
               />
             </div>
+
 
             {/* Category dropdown */}
             <div>
@@ -217,6 +269,7 @@ export default function CardDetail() {
               </select>
             </div>
 
+
             {/* Date input */}
             <div>
               <label>Date:</label>
@@ -230,6 +283,7 @@ export default function CardDetail() {
             </div>
           </div>
 
+
           {/* Submit button */}
           <button 
             type="submit" 
@@ -241,9 +295,28 @@ export default function CardDetail() {
         </form>
       </div>
 
+
       {/* Section: List of Transactions */}
       <div>
-        <h2>Transactions</h2>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+          <h2>Transactions</h2>
+          {transactions.length > 0 && (
+            <button
+              onClick={handleDeleteAll}
+              style={{
+                padding: '10px 20px',
+                backgroundColor: '#f44336',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer'
+              }}
+            >
+              Delete All Transactions
+            </button>
+          )}
+        </div>
+        
         {transactions.length === 0 ? (
           // Show message if no transactions
           <p>No transactions yet. Add your first transaction above!</p>
@@ -296,3 +369,4 @@ export default function CardDetail() {
     </div>
   );
 }
+

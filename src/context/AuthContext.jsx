@@ -12,7 +12,7 @@ const [loading, setLoading] = useState(true);
     const storedToken = localStorage.getItem('token');
     const storedUser = localStorage.getItem('user');
 
-if (storedToken && storedUser) {
+    if (storedToken && storedUser && storedUser !== 'undefined') {
       setToken(storedToken);
       setUser(JSON.parse(storedUser));
     }
@@ -50,5 +50,6 @@ const login = (userData, authToken) => {
     </AuthContext.Provider>
   );
 }
+
 
 

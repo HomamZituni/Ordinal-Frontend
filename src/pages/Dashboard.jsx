@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/useAuth';
 
+
 export default function Dashboard() {
   // Get user data and token from AuthContext
   const { user, token, logout } = useAuth();
@@ -40,51 +41,44 @@ export default function Dashboard() {
     try {
       const response = await fetch(`${API_URL}/cards`, {
         headers: {
-          'Authorization': `Bearer ${token}` // Send JWT token for authentication
+          'Authorization': `Bearer ${token}`
         }
       });
 
-      // Function to get gamification data from backend
-const fetchGamification = async () => {
-  try {
-    // For demo: get gamification for the first card
-    // In production, you'd do this per card or aggregate
-    const response = await fetch(`${API_URL}/cards/gamification`, {
-      headers: {
-        'Authorization': `Bearer ${token}`
-      }
-    });
-
-    const data = await response.json();
-
-    if (response.ok) {
-      setGamification(data); // Save gamification data to state
-    }
-    // Ignore errors - gamification is optional feature
-    
-  } catch (err) {
-    // Silently fail - don't break dashboard if gamification fails
-    console.log('Gamification not available');
-  }
-};
-
-
       const data = await response.json();
 
-      // If token is invalid/expired, logout user
       if (!response.ok) {
         if (response.status === 401) {
-          logout(); // Clear auth data and redirect to login
+          logout();
           navigate('/');
         }
         throw new Error(data.message || 'Failed to fetch cards');
       }
 
-      // Update cards state with data from backend
       setCards(data);
       
     } catch (err) {
       setError(err.message);
+    }
+  };
+
+  // Function to get gamification data from backend
+  const fetchGamification = async () => {
+    try {
+      const response = await fetch(`${API_URL}/cards/gamification`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setGamification(data);
+      }
+      
+    } catch (err) {
+      console.log('Gamification not available');
     }
   };
 
@@ -102,8 +96,14 @@ const fetchGamification = async () => {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}` // Authentication required
         },
-        body: JSON.stringify(newCard) // Send form data
+        body: JSON.stringify({
+          cardName: newCard.name,        // Map name → cardName
+          issuer: newCard.network,        // Map network → issuer
+          cardType: newCard.network,      // Add cardType (same as network)
+          lastFourDigits: newCard.last4   // Map last4 → lastFourDigits
+        })
       });
+
 
       const data = await response.json();
 
@@ -124,10 +124,35 @@ const fetchGamification = async () => {
     }
   };
 
+ const handleGenerateTransactions = async (cardId) => {
+  try {
+    const response = await fetch(`${API_URL}/cards/${cardId}/transactions/generate`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.message || 'Failed to generate transactions');
+    }
+
+    alert('Transactions generated successfully!');
+    
+  } catch (err) {
+    setError(err.message);
+  }
+};
+
+
+
   // Handle clicking on a card to view its details
   const handleCardClick = (cardId) => {
-    navigate(`/card/${cardId}`); // Navigate to CardDetail page
-  };
+  navigate(`/cards/${cardId}`); // Changed from /card/ to /cards/
+};
+
 
   return (
     <div style={{ maxWidth: '800px', margin: '50px auto', padding: '20px' }}>
@@ -189,7 +214,6 @@ const fetchGamification = async () => {
   </div>
 )}
  
-
       {/* Show error message if exists */}
       {error && <div style={{ color: 'red', marginBottom: '15px' }}>{error}</div>}
 
@@ -271,40 +295,56 @@ const fetchGamification = async () => {
         backgroundColor: '#f9f9f9'
       }}
     >
-      <h3 style={{ margin: '0 0 5px 0' }}>{card.name}</h3>
-      <p style={{ margin: '0 0 10px 0', color: '#666' }}>
-        {card.network} •••• {card.last4}
-      </p>
+<h3 style={{ margin: '0 0 5px 0' }}>{card.cardName}</h3>
+<p style={{ margin: '0 0 10px 0', color: '#666' }}>
+  {card.issuer} •••• {card.lastFourDigits}
+</p>
+
       
       {/* Action buttons */}
-      <div style={{ display: 'flex', gap: '10px' }}>
-        <button
-          onClick={() => handleCardClick(card._id)} // Navigate to card detail on click
-          style={{
-            padding: '8px 15px',
-            cursor: 'pointer',
-            backgroundColor: '#2196F3',
-            color: 'white',
-            border: 'none',
-            borderRadius: '4px'
-          }}
-        >
-          View Transactions
-        </button>
-        <button
-          onClick={() => navigate(`/rewards/${card._id}`)} // Navigate to rewards page
-          style={{
-            padding: '8px 15px',
-            cursor: 'pointer',
-            backgroundColor: '#4CAF50',
-            color: 'white',
-            border: 'none',
-            borderRadius: '4px'
-          }}
-        >
-          View Rewards
-        </button>
-      </div>
+<div style={{ display: 'flex', gap: '10px' }}>
+  <button
+    onClick={() => handleCardClick(card._id)} // Navigate to card detail on click
+    style={{
+      padding: '8px 15px',
+      cursor: 'pointer',
+      backgroundColor: '#2196F3',
+      color: 'white',
+      border: 'none',
+      borderRadius: '4px'
+    }}
+  >
+    View Transactions
+  </button>
+  <button
+    onClick={() => navigate(`/cards/${card._id}/rewards`)}
+ // Navigate to rewards page
+    style={{
+      padding: '8px 15px',
+      cursor: 'pointer',
+      backgroundColor: '#4CAF50',
+      color: 'white',
+      border: 'none',
+      borderRadius: '4px'
+    }}
+  >
+    View Rewards
+  </button>
+  <button
+    onClick={() => handleGenerateTransactions(card._id)}
+    style={{
+      padding: '8px 15px',
+      cursor: 'pointer',
+      backgroundColor: '#FF9800',
+      color: 'white',
+      border: 'none',
+      borderRadius: '4px'
+    }}
+  >
+    Generate Transactions
+  </button>
+</div>
+
     </div>
   ))}
 </div>

@@ -1,10 +1,13 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/useAuth';
+const API_URL = import.meta.env.VITE_API_URL;
+
 
 export default function Register() {
   // State for form inputs
   const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   
@@ -38,10 +41,11 @@ export default function Register() {
 
     try {
       // Make POST request to backend register endpoint
+      console.log('API_URL is:', API_URL);
       const response = await fetch(`${API_URL}/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }) // Send email and password
+        body: JSON.stringify({ email, username, password }) // Send email and password
       });
 
       // Parse JSON response from backend
@@ -87,6 +91,19 @@ export default function Register() {
             style={{ width: '100%', padding: '8px', marginTop: '5px' }}
           />
         </div>
+
+        {/* Username input */}
+    <div style={{ marginBottom: '15px' }}>
+    <label>Username:</label>
+    <input
+      type="text"
+      value={username}
+      onChange={(e) => setUsername(e.target.value)}
+      required
+      style={{ width: '100%', padding: '8px', marginTop: '5px' }}
+    />
+    </div>
+
 
         {/* Password input */}
         <div style={{ marginBottom: '15px' }}>

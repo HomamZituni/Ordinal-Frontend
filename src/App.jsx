@@ -22,7 +22,7 @@ function App() {
           } 
         />
         <Route 
-          path="/cards/:id" 
+          path="/cards/:cardId" 
           element={
             <ProtectedRoute>
               <CardDetail />
