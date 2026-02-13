@@ -2,218 +2,136 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/useAuth';
 
-
 export default function Rewards() {
-  // Get cardId from URL params (e.g., /rewards/123abc)
   const { cardId } = useParams();
-  
-  // Get token for API authentication
   const { token, logout } = useAuth();
-  
-  // Navigate function
   const navigate = useNavigate();
   
-  // State for card info and rewards
   const [card, setCard] = useState(null);
   const [rewards, setRewards] = useState([]);
-  
-  // State for AI toggle (true = ranked, false = unranked)
   const [aiEnabled, setAiEnabled] = useState(true);
-  
-  // State for loading and errors
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
-  
-  // Get API URL from .env
+
   const API_URL = import.meta.env.VITE_API_URL;
 
-
-  // Fetch card and rewards when component loads
   useEffect(() => {
     fetchCardAndRewards();
-  }, [cardId, aiEnabled]); // Re-run when cardId or aiEnabled changes
+  }, [cardId, aiEnabled]);
 
-
-  // Function to get card details and rewards from backend
   const fetchCardAndRewards = async () => {
     console.log('fetchCardAndRewards called, aiEnabled:', aiEnabled);
     setLoading(true);
+    setError('');
+
     try {
       // Fetch card details
       const cardResponse = await fetch(`${API_URL}/cards/${cardId}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
+        headers: { Authorization: `Bearer ${token}` }
       });
 
-
-      const cardData = await cardResponse.json();
-
-
       if (!cardResponse.ok) {
+        const data = await cardResponse.json().catch(() => ({}));
         if (cardResponse.status === 401) {
           logout();
           navigate('/');
         }
-        throw new Error(cardData.message || 'Failed to fetch card');
+        throw new Error(data.message || 'Failed to fetch card');
       }
 
-
+      const cardData = await cardResponse.json();
       setCard(cardData);
 
-
-      // Fetch rewards - use different endpoint based on AI toggle
-      const rewardsUrl = aiEnabled 
-        ? `${API_URL}/cards/${cardId}/recommendations` // AI ranked rewards
-        : `${API_URL}/cards/${cardId}/rewards`; // Unranked rewards list
+      // Decide which rewards URL to use
+      let rewardsUrl = aiEnabled 
+        ? `${API_URL}/cards/${cardId}/rewards/ranked`
+        : `${API_URL}/cards/${cardId}/rewards`;
 
       console.log('Fetching rewards from:', rewardsUrl);
 
       const rewardsResponse = await fetch(rewardsUrl, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
+        headers: { Authorization: `Bearer ${token}` }
       });
 
-
-      const rewardsData = await rewardsResponse.json();
-      console.log('Rewards data received:', rewardsData);
-
-
       if (!rewardsResponse.ok) {
-        throw new Error(rewardsData.message || 'Failed to fetch rewards');
+        // Fallback if /ranked doesn’t exist
+        if (aiEnabled && rewardsResponse.status === 404) {
+          console.warn('AI-ranked rewards not available, falling back to normal rewards');
+          rewardsUrl = `${API_URL}/cards/${cardId}/rewards`;
+          const fallbackResponse = await fetch(rewardsUrl, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          if (!fallbackResponse.ok) throw new Error('Failed to fetch rewards');
+          const fallbackData = await fallbackResponse.json();
+          setRewards(fallbackData);
+          setAiEnabled(false); // automatically disable AI since ranked not available
+          return;
+        }
+
+        const data = await rewardsResponse.json().catch(() => ({}));
+        throw new Error(data.message || 'Failed to fetch rewards');
       }
 
+      const rewardsData = await rewardsResponse.json();
+      setRewards(aiEnabled ? rewardsData.rewards || [] : rewardsData);
 
-      setRewards(rewardsData.recommendations || rewardsData);
-
-      
     } catch (err) {
       console.error('Error in fetchCardAndRewards:', err);
       setError(err.message);
+      setRewards([]);
     } finally {
       setLoading(false);
     }
   };
 
-
-// Handle manual refresh button (recalculates AI rankings) 
   const handleRefresh = async () => {
-    console.log('handleRefresh called, aiEnabled:', aiEnabled);
-    
     if (!aiEnabled) {
       alert('Enable AI ranking to refresh recommendations');
       return;
     }
 
-
     setRefreshing(true);
     setError('');
 
-
     try {
-      console.log('Calling refresh endpoint...');
-      // Call refresh endpoint to recalculate rankings
-      const response = await fetch(`${API_URL}/cards/${cardId}/recommendations/refresh`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
+      const response = await fetch(`${API_URL}/cards/${cardId}/rewards/ranked`, {
+        headers: { Authorization: `Bearer ${token}` }
       });
 
+      if (!response.ok) throw new Error('Failed to refresh rankings');
 
       const data = await response.json();
-      console.log('Refresh response:', data);
-
-
-      if (!response.ok) {
-        throw new Error(data.message || 'Failed to refresh recommendations');
-      }
-
-
-      // Success! Reload rewards with new rankings
-      console.log('Fetching updated rewards...');
-      const rewardsUrl = `${API_URL}/cards/${cardId}/recommendations`;
-      const rewardsResponse = await fetch(rewardsUrl, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
-
-      const rewardsData = await rewardsResponse.json();
-      console.log('Updated rewards:', rewardsData);
-      
-if (rewardsResponse.ok) {
-  setRewards(rewardsData.recommendations || rewardsData);
-}
-
-      
+      setRewards(data.rewards || []);
+      alert('Rankings refreshed successfully!');
     } catch (err) {
       console.error('Error in handleRefresh:', err);
-      setError(err.message);
-      alert(err.message);
+      alert('Failed to refresh rankings. AI-ranked rewards may not be available yet.');
     } finally {
       setRefreshing(false);
     }
   };
 
+  const handleToggleAI = () => setAiEnabled(!aiEnabled);
 
-
-
-  // Toggle AI ranking on/off
-  const handleToggleAI = () => {
-    setAiEnabled(!aiEnabled); // Flip the boolean
-    // useEffect will automatically re-fetch with new setting
-  };
-
-
-
-  
-  // Load ranked rewards manually
- const loadRankedRewards = () => {
-  console.log('loadRankedRewards called');
-  handleRefresh(); 
-};
-
-
-  // Show loading message while fetching data
   if (loading && !card) {
     return <div style={{ padding: '50px', textAlign: 'center' }}>Loading...</div>;
   }
 
-
-
   return (
     <div style={{ maxWidth: '900px', margin: '50px auto', padding: '20px' }}>
-      {/* Header with back button */}
       <div style={{ marginBottom: '30px' }}>
-        <button 
-          onClick={() => navigate('/dashboard')}
-          style={{ padding: '8px 15px', cursor: 'pointer', marginBottom: '15px' }}
-        >
+        <button onClick={() => navigate('/dashboard')} style={{ padding: '8px 15px', cursor: 'pointer', marginBottom: '15px' }}>
           ← Back to Dashboard
         </button>
         <h1>Rewards</h1>
-        {card && <p style={{ color: '#666' }}>{card.name} • {card.network} •••• {card.last4}</p>}
+        {card && <p style={{ color: '#666' }}>{card.cardName} • {card.issuer} •••• {card.lastFourDigits}</p>}
       </div>
 
-
-      {/* Show error message if exists */}
       {error && <div style={{ color: 'red', marginBottom: '15px' }}>{error}</div>}
 
-
-      {/* Control panel: AI toggle and Refresh button */}
-      <div style={{ 
-        marginBottom: '30px', 
-        padding: '20px', 
-        border: '1px solid #ddd', 
-        borderRadius: '8px',
-        backgroundColor: '#f9f9f9'
-      }}>
+      <div style={{ marginBottom: '30px', padding: '20px', border: '1px solid #ddd', borderRadius: '8px', backgroundColor: '#f9f9f9' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          {/* AI Toggle */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <label style={{ fontWeight: 'bold' }}>AI Ranking:</label>
             <button
@@ -230,61 +148,37 @@ if (rewardsResponse.ok) {
               {aiEnabled ? 'ON' : 'OFF'}
             </button>
             <span style={{ color: '#666', fontSize: '14px' }}>
-              {aiEnabled ? '(Showing ranked recommendations)' : '(Showing all rewards)'}
+              {aiEnabled ? '(NBA rankings based on your spending)' : '(Showing all rewards)'}
             </span>
           </div>
 
-
-
-          {/* Action buttons */}
-          <div style={{ display: 'flex', gap: '10px' }}>
-            <button
-              onClick={loadRankedRewards}
-              disabled={!aiEnabled}
-              style={{
-                padding: '10px 20px',
-                cursor: !aiEnabled ? 'not-allowed' : 'pointer',
-                backgroundColor: aiEnabled ? '#28a745' : '#ccc',
-                color: 'white',
-                border: 'none',
-                borderRadius: '4px'
-              }}
-            >
-              Load Ranked Rewards
-            </button>
-
-
-            <button
-              onClick={handleRefresh}
-              disabled={refreshing || !aiEnabled}
-              style={{
-                padding: '10px 20px',
-                cursor: refreshing || !aiEnabled ? 'not-allowed' : 'pointer',
-                backgroundColor: aiEnabled ? '#2196F3' : '#ccc',
-                color: 'white',
-                border: 'none',
-                borderRadius: '4px'
-              }}
-            >
-              {refreshing ? 'Refreshing...' : '🔄 Refresh Rankings'}
-            </button>
-          </div>
+          <button
+            onClick={handleRefresh}
+            disabled={refreshing || !aiEnabled}
+            style={{
+              padding: '10px 20px',
+              cursor: refreshing || !aiEnabled ? 'not-allowed' : 'pointer',
+              backgroundColor: aiEnabled ? '#2196F3' : '#ccc',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px'
+            }}
+          >
+            {refreshing ? 'Refreshing...' : '🔄 Refresh Rankings'}
+          </button>
         </div>
       </div>
 
-
-
-      {/* Rewards List */}
       <div>
-        <h2>{aiEnabled ? 'Recommended Rewards (Ranked)' : 'All Rewards'}</h2>
-        
+        <h2>{aiEnabled ? 'Recommended Rewards (NBA Ranked)' : 'All Available Rewards'}</h2>
+
         {loading ? (
-          <p>Loading rewards...</p>
+          <p>Loading...</p>
         ) : rewards.length === 0 ? (
-          <p>No rewards available yet.</p>
+          <p>No rewards found. Add transactions to see rankings.</p>
         ) : (
           <div>
-            {(Array.isArray(rewards) ? rewards : []).map((reward, index) => (
+            {rewards.map((reward, index) => (
               <div
                 key={reward._id}
                 style={{
@@ -296,8 +190,7 @@ if (rewardsResponse.ok) {
                   position: 'relative'
                 }}
               >
-                {/* Show rank number if AI is enabled */}
-                {aiEnabled && (
+                {aiEnabled && reward.nbaScore !== undefined && (
                   <div style={{
                     position: 'absolute',
                     top: '20px',
@@ -317,27 +210,18 @@ if (rewardsResponse.ok) {
                   </div>
                 )}
 
-
-
-                {/* Reward details */}
-                <h3 style={{ margin: '0 0 10px 0' }}>{reward.name}</h3>
+                <h3 style={{ margin: '0 0 10px 0' }}>{reward.title}</h3>
                 <p style={{ margin: '5px 0', color: '#666' }}>{reward.description}</p>
-                
+
                 <div style={{ marginTop: '10px' }}>
-                  <p style={{ margin: '5px 0' }}>
-                    <strong>Type:</strong> {reward.type}
-                  </p>
-                  <p style={{ margin: '5px 0' }}>
-                    <strong>Points Required:</strong> {reward.pointsCost.toLocaleString()}
-                  </p>
-                  <p style={{ margin: '5px 0' }}>
-                    <strong>Value:</strong> ${reward.value.toFixed(2)}
-                  </p>
-                  
-                  {/* Show AI score if AI is enabled */}
-                  {aiEnabled && reward.score !== undefined && (
-                    <p style={{ margin: '5px 0', color: '#4CAF50', fontWeight: 'bold' }}>
-                      AI Score: {reward.score.toFixed(2)}
+                  <p style={{ margin: '5px 0' }}><strong>Category:</strong> {reward.category}</p>
+                  <p style={{ margin: '5px 0' }}><strong>Points Cost:</strong> {reward.pointsCost.toLocaleString()}</p>
+                  <p style={{ margin: '5px 0' }}><strong>Value:</strong> ${reward.value.toFixed(2)}</p>
+                  <p style={{ margin: '5px 0' }}><strong>Tier:</strong> {reward.tier}</p>
+
+                  {aiEnabled && reward.nbaScore !== undefined && (
+                    <p style={{ margin: '10px 0 0 0', color: '#4CAF50', fontWeight: 'bold', fontSize: '16px' }}>
+                      NBA Score: {reward.nbaScore.toFixed(2)}
                     </p>
                   )}
                 </div>
@@ -349,4 +233,3 @@ if (rewardsResponse.ok) {
     </div>
   );
 }
-

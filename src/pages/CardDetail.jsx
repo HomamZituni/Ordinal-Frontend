@@ -2,56 +2,39 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/useAuth';
 
-
 export default function CardDetail() {
-  // Get cardId from URL params (e.g., /card/123abc)
   const { cardId } = useParams();
-  
-  // Get token for API authentication
   const { token, logout } = useAuth();
-  
-  // Navigate function to go back to dashboard
   const navigate = useNavigate();
   
-  // State for card info and transactions
   const [card, setCard] = useState(null);
   const [transactions, setTransactions] = useState([]);
   
-  // State for add transaction form
   const [newTransaction, setNewTransaction] = useState({
     merchant: '',
     amount: '',
     category: 'Dining',
-    date: new Date().toISOString().split('T')[0] // Today's date in YYYY-MM-DD format
+    date: new Date().toISOString().split('T')[0]
   });
   
-  // State for loading and errors
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   
-  // Get API URL from .env
   const API_URL = import.meta.env.VITE_API_URL;
 
-
-  // Fetch card info and transactions when component loads
   useEffect(() => {
     fetchCardAndTransactions();
-  }, [cardId]); // Re-run if cardId changes
+  }, [cardId]);
 
-
-  // Function to get card details and transactions from backend
   const fetchCardAndTransactions = async () => {
     try {
-      // Fetch card details
       const cardResponse = await fetch(`${API_URL}/cards/${cardId}`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
       });
 
-
       const cardData = await cardResponse.json();
-
 
       if (!cardResponse.ok) {
         if (cardResponse.status === 401) {
@@ -61,25 +44,19 @@ export default function CardDetail() {
         throw new Error(cardData.message || 'Failed to fetch card');
       }
 
-
       setCard(cardData);
 
-
-      // Fetch transactions for this card
       const txResponse = await fetch(`${API_URL}/cards/${cardId}/transactions`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
       });
 
-
       const txData = await txResponse.json();
-
 
       if (!txResponse.ok) {
         throw new Error(txData.message || 'Failed to fetch transactions');
       }
-
 
       setTransactions(txData);
       
@@ -88,13 +65,10 @@ export default function CardDetail() {
     }
   };
 
-
-  // Handle adding new transaction
   const handleAddTransaction = async (e) => {
-    e.preventDefault(); // Prevent page reload
+    e.preventDefault();
     setError('');
     setLoading(true);
-
 
     try {
       const response = await fetch(`${API_URL}/cards/${cardId}/transactions`, {
@@ -106,19 +80,14 @@ export default function CardDetail() {
         body: JSON.stringify(newTransaction)
       });
 
-
       const data = await response.json();
-
 
       if (!response.ok) {
         throw new Error(data.message || 'Failed to add transaction');
       }
 
-
-      // Success! Refresh transactions list
       await fetchCardAndTransactions();
       
-      // Reset form to empty values
       setNewTransaction({
         merchant: '',
         amount: '',
@@ -133,14 +102,10 @@ export default function CardDetail() {
     }
   };
 
-
-  // Handle deleting a transaction
   const handleDeleteTransaction = async (transactionId) => {
-    // Ask for confirmation before deleting
     if (!confirm('Are you sure you want to delete this transaction?')) {
-      return; // User clicked "Cancel", do nothing
+      return;
     }
-
 
     try {
       const response = await fetch(`${API_URL}/cards/${cardId}/transactions/${transactionId}`, {
@@ -150,14 +115,11 @@ export default function CardDetail() {
         }
       });
 
-
       if (!response.ok) {
         const data = await response.json();
         throw new Error(data.message || 'Failed to delete transaction');
       }
 
-
-      // Success! Refresh list
       await fetchCardAndTransactions();
       
     } catch (err) {
@@ -165,8 +127,6 @@ export default function CardDetail() {
     }
   };
 
-
-  // Handle deleting ALL transactions
   const handleDeleteAll = async () => {
     if (!confirm('Are you sure you want to delete ALL transactions for this card?')) {
       return;
@@ -181,7 +141,7 @@ export default function CardDetail() {
       });
 
       if (response.ok) {
-        setTransactions([]); // Clear the list
+        setTransactions([]);
         alert('All transactions deleted!');
       } else {
         const data = await response.json();
@@ -192,16 +152,12 @@ export default function CardDetail() {
     }
   };
 
-
-  // Show loading message while fetching data
   if (!card) {
     return <div style={{ padding: '50px', textAlign: 'center' }}>Loading...</div>;
   }
 
-
   return (
     <div style={{ maxWidth: '900px', margin: '50px auto', padding: '20px' }}>
-      {/* Header with back button */}
       <div style={{ marginBottom: '30px' }}>
         <button 
           onClick={() => navigate('/dashboard')}
@@ -213,17 +169,12 @@ export default function CardDetail() {
         <p style={{ color: '#666' }}>{card.issuer} •••• {card.lastFourDigits}</p>
       </div>
 
-
-      {/* Show error message if exists */}
       {error && <div style={{ color: 'red', marginBottom: '15px' }}>{error}</div>}
 
-
-      {/* Section: Add New Transaction */}
       <div style={{ marginBottom: '40px', padding: '20px', border: '1px solid #ddd', borderRadius: '8px' }}>
         <h2>Add Transaction</h2>
         <form onSubmit={handleAddTransaction}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
-            {/* Merchant name input */}
             <div>
               <label>Merchant:</label>
               <input
@@ -236,13 +187,11 @@ export default function CardDetail() {
               />
             </div>
 
-
-            {/* Amount input */}
             <div>
               <label>Amount ($):</label>
               <input
                 type="number"
-                step="0.01" // Allow decimal values like 10.50
+                step="0.01"
                 value={newTransaction.amount}
                 onChange={(e) => setNewTransaction({ ...newTransaction, amount: e.target.value })}
                 placeholder="0.00"
@@ -251,8 +200,6 @@ export default function CardDetail() {
               />
             </div>
 
-
-            {/* Category dropdown */}
             <div>
               <label>Category:</label>
               <select
@@ -265,12 +212,12 @@ export default function CardDetail() {
                 <option value="Groceries">Groceries</option>
                 <option value="Gas">Gas</option>
                 <option value="Entertainment">Entertainment</option>
+                <option value="Shopping">Shopping</option>
+                <option value="Bills">Bills</option>
                 <option value="Other">Other</option>
               </select>
             </div>
 
-
-            {/* Date input */}
             <div>
               <label>Date:</label>
               <input
@@ -283,8 +230,6 @@ export default function CardDetail() {
             </div>
           </div>
 
-
-          {/* Submit button */}
           <button 
             type="submit" 
             disabled={loading}
@@ -295,8 +240,6 @@ export default function CardDetail() {
         </form>
       </div>
 
-
-      {/* Section: List of Transactions */}
       <div>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
           <h2>Transactions</h2>
@@ -318,14 +261,12 @@ export default function CardDetail() {
         </div>
         
         {transactions.length === 0 ? (
-          // Show message if no transactions
           <p>No transactions yet. Add your first transaction above!</p>
         ) : (
-          // Show list of transactions
           <div>
             {transactions.map((tx) => (
               <div
-                key={tx._id} // Unique key for React list rendering
+                key={tx._id}
                 style={{
                   padding: '15px',
                   border: '1px solid #ddd',
@@ -335,7 +276,6 @@ export default function CardDetail() {
                 }}
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
-                  {/* Transaction info */}
                   <div>
                     <h3 style={{ margin: '0 0 5px 0' }}>{tx.merchant}</h3>
                     <p style={{ margin: '5px 0', color: '#666' }}>
@@ -346,7 +286,6 @@ export default function CardDetail() {
                     </p>
                   </div>
                   
-                  {/* Delete button */}
                   <button
                     onClick={() => handleDeleteTransaction(tx._id)}
                     style={{ 
@@ -369,4 +308,3 @@ export default function CardDetail() {
     </div>
   );
 }
-
