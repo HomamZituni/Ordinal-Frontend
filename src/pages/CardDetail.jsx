@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/useAuth';
+import GamificationBanner from '../components/GamificationBanner';
 
 // Merchant list with categories
 const merchantsData = [
@@ -41,6 +42,8 @@ export default function CardDetail() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const API_URL = import.meta.env.VITE_API_URL;
+  const [gamification, setGamification] = useState(null);
+  const [recommendations, setRecommendations] = useState([]);
 
   useEffect(() => {
     fetchCardAndTransactions();
@@ -48,6 +51,7 @@ export default function CardDetail() {
 
   const fetchCardAndTransactions = async () => {
     try {
+      // Fetch card
       const cardResponse = await fetch(`${API_URL}/cards/${cardId}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -61,12 +65,39 @@ export default function CardDetail() {
       }
       setCard(cardData);
 
+      // Fetch transactions
       const txResponse = await fetch(`${API_URL}/cards/${cardId}/transactions`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       const txData = await txResponse.json();
       if (!txResponse.ok) throw new Error(txData.message || 'Failed to fetch transactions');
       setTransactions(txData);
+
+      // ✅ Fixed: fetch gamification from global endpoint
+      const gamificationResponse = await fetch(`${API_URL}/cards/gamification`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (gamificationResponse.ok) {
+        const gamificationData = await gamificationResponse.json();
+        if (Array.isArray(gamificationData) && gamificationData.length > 0) {
+          setGamification({
+            message: gamificationData[0].message || '',
+            progressPercent: gamificationData[0].progressPercentage ?? 0
+          });
+        }
+      } else {
+        console.warn('Failed to fetch gamification data', gamificationResponse.status);
+      }
+
+      // Fetch recommendations
+      const recsResponse = await fetch(`${API_URL}/cards/${cardId}/recommendations`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const recsData = await recsResponse.json();
+      if (recsResponse.ok) {
+        setRecommendations(recsData);
+      }
+
     } catch (err) {
       setError(err.message);
     }
@@ -157,6 +188,14 @@ export default function CardDetail() {
           </div>
           <span style={styles.issuerBadge}>{card.issuer}</span>
         </div>
+
+        {/* Gamification Banner */}
+        {gamification && (
+          <GamificationBanner
+            message={gamification.message}
+            progressPercent={gamification.progressPercent}
+          />
+        )}
 
         {/* Add Transaction Form */}
         <div style={styles.formCard}>
@@ -259,7 +298,9 @@ export default function CardDetail() {
   );
 }
 
-// ---------- Styles Object (unchanged from original)
+
+
+
 const styles = {
   pageContainer: {
     minHeight: '100vh',

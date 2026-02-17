@@ -2,8 +2,6 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/useAuth';
 
-
-
 export default function Dashboard() {
   const { user, token, logout } = useAuth();
   const navigate = useNavigate();
@@ -12,21 +10,17 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const API_URL = import.meta.env.VITE_API_URL;
-  const [gamification, setGamification] = useState(null);
-
-
+  {/*const [gamification, setGamification] = useState(null);*/}
 
   useEffect(() => {
     fetchCards();
-    fetchGamification();
+    {/*fetchGamification();*/}
   }, []);
-
-
 
   const fetchCards = async () => {
     try {
       const response = await fetch(`${API_URL}/cards`, {
-        headers: { 'Authorization': `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}` }
       });
       const data = await response.json();
       if (!response.ok) {
@@ -42,9 +36,7 @@ export default function Dashboard() {
     }
   };
 
-
-
-  const fetchGamification = async () => {
+  /* const fetchGamification = async () => {
     try {
       const response = await fetch(`${API_URL}/cards/gamification`, {
         headers: { 'Authorization': `Bearer ${token}` }
@@ -54,9 +46,7 @@ export default function Dashboard() {
     } catch (err) {
       console.log('Gamification not available');
     }
-  };
-
-
+  }; */
 
   const handleCreateCard = async (e) => {
     e.preventDefault();
@@ -67,7 +57,7 @@ export default function Dashboard() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          Authorization: `Bearer ${token}`
         },
         body: JSON.stringify({
           cardName: newCard.name,
@@ -87,8 +77,6 @@ export default function Dashboard() {
     }
   };
 
-
-
   const handleCardClick = (cardId) => {
     navigate(`/cards/${cardId}`);
   };
@@ -97,25 +85,23 @@ export default function Dashboard() {
     if (!confirm(`Are you sure you want to delete ${cardName}?`)) {
       return;
     }
-    
+
     try {
       const response = await fetch(`${API_URL}/cards/${cardId}`, {
         method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}` }
       });
-      
+
       if (!response.ok) {
         const data = await response.json();
         throw new Error(data.message || 'Failed to delete card');
       }
-      
+
       await fetchCards();
     } catch (err) {
       setError(err.message);
     }
   };
-
-
 
   return (
     <div style={styles.pageContainer}>
@@ -128,7 +114,10 @@ export default function Dashboard() {
               Welcome, <span style={styles.username}>{user?.username}</span>
             </span>
             <button
-              onClick={() => { logout(); navigate('/'); }}
+              onClick={() => {
+                logout();
+                navigate('/');
+              }}
               style={styles.logoutButton}
             >
               Logout
@@ -137,35 +126,13 @@ export default function Dashboard() {
         </div>
       </div>
 
-
-
+      {/* ✅ Restored proper content wrapper for layout symmetry */}
       <div style={styles.contentWrapper}>
-        {/* Gamification Banner */}
-        {gamification && (
-          <div style={styles.gamificationBanner}>
-            <p style={styles.gamificationMessage}>{gamification.message}</p>
-            {gamification.progressPercent !== undefined && (
-              <div style={styles.progressBarContainer}>
-                <div
-                  style={{
-                    ...styles.progressBarFill,
-                    width: `${gamification.progressPercent}%`
-                  }}
-                />
-              </div>
-            )}
-          </div>
-        )}
-
-
-
         {/* Add Card Form */}
         <div style={styles.formCard}>
           <h2 style={styles.sectionTitle}>Add New Card</h2>
-          
+
           {error && <div style={styles.error}>{error}</div>}
-
-
 
           <form onSubmit={handleCreateCard} style={styles.form}>
             <input
@@ -209,8 +176,6 @@ export default function Dashboard() {
           </form>
         </div>
 
-
-
         {/* Cards Grid */}
         <div>
           <h2 style={styles.sectionTitle}>Your Cards</h2>
@@ -231,7 +196,10 @@ export default function Dashboard() {
                     e.currentTarget.style.borderColor = '#374151';
                   }}
                 >
-                  <div onClick={() => handleCardClick(card._id)} style={{ cursor: 'pointer' }}>
+                  <div
+                    onClick={() => handleCardClick(card._id)}
+                    style={{ cursor: 'pointer' }}
+                  >
                     <div style={styles.cardHeader}>
                       <h3 style={styles.cardName}>{card.cardName}</h3>
                       <span style={styles.issuerBadge}>{card.issuer}</span>
@@ -239,7 +207,7 @@ export default function Dashboard() {
                     <p style={styles.cardNumber}>•••• {card.lastFourDigits}</p>
                     <p style={styles.cardHint}>Click to view details</p>
                   </div>
-                  
+
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
@@ -259,23 +227,21 @@ export default function Dashboard() {
   );
 }
 
-
-
 const styles = {
-pageContainer: {
-  minHeight: '100vh',
-  background: '#1F2A3A',
-  fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
-  margin: 0,
-  padding: 0,
-  width: '100%',
-  position: 'absolute',
-  top: 0,
-  left: 0,
-  right: 0,
-  bottom: 0
-}
-,
+  pageContainer: {
+    minHeight: '100vh',
+    background: '#1F2A3A',
+    fontFamily:
+      'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+    margin: 0,
+    padding: 0,
+    width: '100%',
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0
+  },
   header: {
     background: '#243447',
     borderBottom: '1px solid #374151',
@@ -322,32 +288,6 @@ pageContainer: {
     maxWidth: '1200px',
     margin: '0 auto',
     padding: '32px 24px'
-  },
-  gamificationBanner: {
-    background: '#243447',
-    borderRadius: '12px',
-    padding: '24px',
-    marginBottom: '32px',
-    border: '1px solid #374151',
-    boxShadow: '0 2px 12px rgba(0, 0, 0, 0.3)'
-  },
-  gamificationMessage: {
-    color: '#D1D5DB',
-    margin: '0 0 12px 0',
-    fontSize: '15px'
-  },
-  progressBarContainer: {
-    width: '100%',
-    height: '12px',
-    background: '#1F2A3A',
-    borderRadius: '6px',
-    overflow: 'hidden'
-  },
-  progressBarFill: {
-    height: '100%',
-    background: '#C9A84E',
-    borderRadius: '6px',
-    transition: 'width 0.5s ease'
   },
   formCard: {
     background: '#243447',
