@@ -17,7 +17,7 @@ export default function Rewards() {
 
   useEffect(() => {
     fetchCardAndRewards();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
   }, [cardId, aiEnabled]);
 
   const fetchCardAndRewards = async () => {

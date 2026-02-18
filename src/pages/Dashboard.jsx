@@ -126,7 +126,7 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* ✅ Restored proper content wrapper for layout symmetry */}
+      {/*  proper content wrapper for layout symmetry */}
       <div style={styles.contentWrapper}>
         {/* Add Card Form */}
         <div style={styles.formCard}>

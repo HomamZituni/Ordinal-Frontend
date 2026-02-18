@@ -73,7 +73,7 @@ export default function CardDetail() {
       if (!txResponse.ok) throw new Error(txData.message || 'Failed to fetch transactions');
       setTransactions(txData);
 
-      // ✅ Fixed: fetch gamification from global endpoint
+      // fetch gamification from global endpoint
       const gamificationResponse = await fetch(`${API_URL}/cards/gamification`, {
         headers: { Authorization: `Bearer ${token}` }
       });
