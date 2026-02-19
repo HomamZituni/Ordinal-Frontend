@@ -39,5 +39,17 @@ Top-level frontend files and folders:
 - On successful login, the backend returns a user object and JWT token.  
 - The token is stored in AuthContext and sent as an `Authorization: Bearer <token>` header on protected requests.
 
+## Quick Local Setup
+
+1. **Clone & Install**
+   ```bash
+   git clone <your-frontend-repo>
+   cd ordinal-frontend
+   npm install
+echo "VITE_API_URL=http://localhost:5000/api" > .env
+npm run dev
+Must also set up backend for this to work, see backend repo
+
+
 
 
