@@ -1,4 +1,4 @@
-import {BrowserRouter, Routes, Route} from 'react-router-dom';
+import { HashRouter, Routes, Route } from 'react-router-dom';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
@@ -6,10 +6,9 @@ import CardDetail from './pages/CardDetail';
 import Rewards from './pages/Rewards';
 import ProtectedRoute from './components/ProtectedRoute';
 
-
 function App() {
   return (
-    <BrowserRouter>
+    <HashRouter>
       <Routes>
         <Route path="/" element={<Login />} />
         <Route path="/register" element={<Register />} />
@@ -38,8 +37,9 @@ function App() {
           } 
         />
       </Routes>
-    </BrowserRouter>
+    </HashRouter>
   );
 }
 
 export default App;
+
