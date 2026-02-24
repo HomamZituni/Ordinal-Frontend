@@ -1,16 +1,55 @@
-# React + Vite
+# Ordinal Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+React + Vite frontend for Ordinal credit card rewards recommendation platform. It handles user login, dashboard, cards, transactions, and rewards views.
 
-Currently, two official plugins are available:
+## Tech Stack
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- React (with hooks and React Router)
+- Vite for build tooling and dev server
+- Fetch API for HTTP requests
+- Custom AuthContext for JWT-based authentication
 
-## React Compiler
+## Prerequisites
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- Node.js (LTS) and npm installed
+- Ordinal backend API running locally (use localhost or Render once deployed live)
 
-## Expanding the ESLint configuration
+## Project Structure
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+Top-level frontend files and folders:
+
+- `App.jsx` – Main application component and routing shell  
+- `App.css` – Global app-specific styles  
+- `index.css` – Base/global styles  
+- `main.jsx` – React entry point (mounts the app, sets up router/context)  
+- `assets/` – Static assets (images, icons, etc.)  
+- `components/` – Reusable presentational and UI components  
+- `context/` – Context providers, including `useAuth` for authentication state  
+- `pages/` – Route-level pages (e.g., `Login.jsx`, `Dashboard.jsx`, `CardDetail.jsx`)  
+
+## Environment Variables
+
+- `VITE_API_URL` – Base URL for the backend API  
+  - Example (local): `http://localhost:5000/api`  
+  - Example (Render): `https://your-backend.onrender.com/api`  
+
+## Authentication
+
+- Users log in with email and password.  
+- On successful login, the backend returns a user object and JWT token.  
+- The token is stored in AuthContext and sent as an `Authorization: Bearer <token>` header on protected requests.
+
+## Quick Local Setup
+
+1. **Clone & Install**
+   ```bash
+   git clone <your-frontend-repo>
+   cd ordinal-frontend
+   npm install
+echo "VITE_API_URL=http://localhost:5000/api" > .env
+npm run dev
+Must also set up backend for this to work, see backend repo
+
+
+
+
